@@ -3,6 +3,4 @@ import snackbarSlice from './snackbarSlice';
 
 export default {
   employeeReducer: employeeSlice,
-
- 
 };

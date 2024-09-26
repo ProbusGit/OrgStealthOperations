@@ -39,9 +39,9 @@ const NotificationScreen: React.FC = () => {
         <Text style={styles.description}>{item.body}</Text>
         <Text style={styles.date}>{moment.unix(item.createdAt).format('MMMM Do YYYY, h:mm:ss a')}</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.removeButton}>
+      {/* <TouchableOpacity style={styles.removeButton}>
         <Ionicons name="close-circle" size={24} color="black" />
-      </TouchableOpacity>
+      </TouchableOpacity> */}
     </View>
   );
 
