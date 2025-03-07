@@ -12,10 +12,21 @@ export const userDetailsApi = baseApi.injectEndpoints({
       }),
      
     }),
+    getTrackData: builder.query<any, void>({
+      query: () => {
+        return {
+          url: `/api/tracktime`,
+          method: 'GET',
+        };
+      },
+      transformResponse: response => response?.data,
+      providesTags:['locationTracking']
+    }),
+
   }),
 });
 
-export const {useGetUserDetailsQuery, useLazyGetUserDetailsQuery} =
+export const {useGetUserDetailsQuery, useLazyGetUserDetailsQuery,  useGetTrackDataQuery, } =
   userDetailsApi;
 
 

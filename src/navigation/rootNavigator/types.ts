@@ -5,6 +5,7 @@ export type RootStackParamList = {
   SplashScreen: undefined;
   Login: undefined;
   MyWebView: undefined;
+  HomeScreen: undefined;
   NotificationScreen: undefined;
   Profile: undefined;
   LogoutScreen: undefined;
@@ -15,6 +16,7 @@ export const screenNames = {
   splashScreen: 'SplashScreen',
   login: 'Login',
   myWebView: 'MyWebView',
+  homeScreen: 'HomeScreen',
   notificationScreen: 'NotificationScreen',
   profile: '"Profile"',
   logoutScreen: 'LogoutScreen'

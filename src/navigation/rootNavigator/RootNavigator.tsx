@@ -7,6 +7,7 @@ import BottomNavigator from '../bottomNavigator';
 import NotificationScreen from '../../screens/notification';
 import Profile from '../../screens/profile';
 import MyWebView from '../../components/webView';
+// import HomeScreen from '../../screens/home';
 import LogoutScreen from '../../screens/logout';
 import { useAppTheme } from '../../theme';
 import Header from './components/header';
@@ -45,6 +46,12 @@ const RootNavigator = (props: Props) => {
           options={{ headerShown: false }}
           component={BottomNavigator}
         />
+
+{/* <Stack.Screen
+          options={{headerShown: false}}
+          name={screenNames.homeScreen}
+          component={HomeScreen}
+        /> */}
 
 <Stack.Screen
           name={screenNames.notificationScreen}

@@ -6,7 +6,8 @@ export const loginApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     login: builder.mutation<LoginResponse, LoginApiArgs>({
       query: (payload) => ({
-        url: `api/loginOP`,
+        url: `api/loginOP`,//ops
+        // url: `api/loginAttendance`,//atd
         method: 'POST',
         body: payload,
       }),

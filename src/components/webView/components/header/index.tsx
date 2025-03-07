@@ -135,12 +135,12 @@ const Header: React.FC<{userId: string}> = ({userId}) => {
           }}>
           <Text style={styles.headerText}>{userDetails?.employeeName}</Text>
           <View style={styles.notificationContainer}>
-            <Icon
+            {/* <Icon
               name="bell"
               // onPress={() => navigation.replace(screenNames.profile)}
               color={theme.colors.onPrimary}
               size={32}
-            />
+            /> */}
             {/* <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
           <Image
             source={{ uri: 'https://via.placeholder.com/150' }} // Replace with your profile image URL

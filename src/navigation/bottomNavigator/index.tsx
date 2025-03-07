@@ -1,27 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Profile from '../../screens/profile';
 import LogoutScreen from '../../screens/logout';
 import NotificationScreen from '../../screens/notification';
+import HomeScreen from '../../screens/home';
 import AutoLoginWebView from '../../components/webView';
 import { CommonActions, useNavigation, useRoute } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text, BottomNavigation } from 'react-native-paper';
+import { BottomNavigation } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const Tab = createBottomTabNavigator();
 
 export default function MyComponent() {
   const [userId, setUserId] = useState<string | undefined>(undefined);
+  const [homeKey, setHomeKey] = useState(0); // Key to force re-render of AutoLoginWebView
 
   const navigation = useNavigation();
   const route = useRoute();
-
-  // useEffect(() => {
-  //   if (route.params?.userId) {
-  //     setUserId(route.params.userId);
-  //   }
-  // }, [route.params?.userId]);
 
   return (
     <Tab.Navigator
@@ -42,6 +38,11 @@ export default function MyComponent() {
             if (event.defaultPrevented) {
               preventDefault();
             } else {
+              if (route.name === 'Home') {
+                // Refresh AutoLoginWebView by updating the key
+                setHomeKey(prevKey => prevKey + 1);
+              }
+
               if (route.name === 'Profile' && userId) {
                 navigation.dispatch({
                   ...CommonActions.navigate(route.name, { userId }),
@@ -65,61 +66,37 @@ export default function MyComponent() {
           }}
           getLabelText={({ route }) => {
             const { options } = descriptors[route.key];
-            const label =
-              options.tabBarLabel !== undefined
-                ? options.tabBarLabel
-                : options.title !== undefined
-                ? options.title
-                : route.title;
-
-            return label;
+            return options.tabBarLabel ?? options.title ?? route.title;
           }}
         />
       )}
     >
       <Tab.Screen
         name="Home"
-        component={AutoLoginWebView}
+        children={() => <AutoLoginWebView key={homeKey} />} // Force refresh with key
         options={{
           tabBarLabel: 'Home',
-          tabBarIcon: ({ color, size }) => {
-            return <Icon name="home" size={size} color={color} />;
-          },
+          tabBarIcon: ({ color, size }) => <Icon name="home" size={size} color={color} />,
         }}
-        // initialParams={{ setUserId }} // Pass the setUserId function to AutoLoginWebView
       />
 
-<Tab.Screen
+      <Tab.Screen
         name="Logout"
         component={LogoutScreen}
         options={{
           tabBarLabel: 'Logout',
-          tabBarIcon: ({ color, size }) => {
-            return <Icon name="logout" size={size} color={color} />;
-          },
+          tabBarIcon: ({ color, size }) => <Icon name="logout" size={size} color={color} />,
         }}
       />
-    
-      <Tab.Screen
-        name="Notification"
-        component={NotificationScreen}
-        options={{
-          tabBarLabel: 'Notification',
-          tabBarIcon: ({ color, size }) => {
-            // return <Icon name="account" size={size} color={color} />;
-            return<Icon
-            name="bell"
-            size={size}
-            color={color}
-            // onPress={() =>
-            //   navigation.navigate(screenNames.notificationScreen)
-            // }
-          />
-          
 
-          
-          
-          },
+      <Tab.Screen
+        name="Check In"
+        component={HomeScreen}
+        options={{
+          tabBarLabel: 'Check In',
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="swap-horizontal" size={size} color={color} />
+          ),
         }}
       />
     </Tab.Navigator>
