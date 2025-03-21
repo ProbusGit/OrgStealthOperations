@@ -89,7 +89,7 @@ const SplashScreen = () => {
           if (checkInoutData?.data) {
             dispatch(setCheckInOutData(checkInoutData?.data));
           }
-          navigation.replace(screenNames.homeScreen);
+          navigation.replace(screenNames.myWebView);
         } catch (error) {
           console.error(error?.data);
           Alert.alert(
@@ -125,14 +125,14 @@ const SplashScreen = () => {
         const employeeId = await AsyncStorage.getItem('employeeId');
         if (employeeId) {
           // If an employeeId exists, navigate to the WebView screen
-          navigation.navigate(screenNames.myWebView);
+          navigation.replace(screenNames.myWebView);
         } else {
           // If no employeeId exists, navigate to the login screen
-          navigation.navigate(screenNames.login);
+          navigation.replace(screenNames.login);
         }
       } catch (error) {
         console.error('Failed to fetch employeeId', error);
-        navigation.navigate(screenNames.login);
+        navigation.replace(screenNames.login);
       }
     };
 

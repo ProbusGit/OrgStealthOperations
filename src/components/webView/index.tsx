@@ -1,219 +1,127 @@
-
-import React, { useRef, useEffect, useState, useCallback } from 'react';
-import {
-  SafeAreaView,
-  StyleSheet,
-  Alert,
-  View,
-  Text,
-  ActivityIndicator,
-  BackHandler,
-} from 'react-native';
-import { WebView } from 'react-native-webview';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { WebView } from 'react-native-webview';
 import autoLoginUtil from '../../components/webView/helper';
-import Header from './components/header';
-import { Button } from 'react-native-paper';
+import { useGetStartEndDayDetailsQuery, useStartDayMutation } from '../../redux/services/activity/ActivitySlice';
+import { handleStartDay } from '../../common/utils/checkInHelper';
+import { useGetTrackDataQuery } from '../../redux/services/user/userApiSlice';
+import useTrackUser from '../../common/helper/userTracking/useLocationTracking';
+import { setSnackMessage } from '../../redux/slices/snackbarSlice';
+import { useNavigation } from '@react-navigation/native';
+import { screenNames } from '../../navigation/rootNavigator/types';
 
-const AutoLoginWebView = () => {
-  const webViewRef = useRef(null);
+const WebViewComponent = () => {
   const navigation = useNavigation();
-  const [loginCredentials, setLoginCredentials] = useState<{ userID: string | null; password: string | null } | null>(null);
-  const [employeeId, setEmployeeId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [canGoBack, setCanGoBack] = useState(false);
+  const webViewRef = useRef(null);
+  const [dynamicUrl, setDynamicUrl] = useState();
+  const [injectedJavaScript, setInjectedJavaScript] = useState('');
+  const { data: startEndDayDetails } = useGetStartEndDayDetailsQuery();
+  const [startDay] = useStartDayMutation();
+  const { data: trackTimeData } = useGetTrackDataQuery();
+  const { updateForeground } = useTrackUser();
 
-  // Function to load credentials and employeeId from AsyncStorage
-  const loadCredentials = async () => {
-    try {
-      const storedUserId = await AsyncStorage.getItem('userID');
-      const storedPassword = await AsyncStorage.getItem('password');
-      const storedEmployeeId = await AsyncStorage.getItem('employeeId');
-
-      if (storedUserId && storedPassword) {
-        setLoginCredentials({
-          userID: storedUserId,
-          password: storedPassword,
-        });
-      } else {
-        setError('No credentials found,Please Login');
-      }
-
-      if (storedEmployeeId) {
-        setEmployeeId(storedEmployeeId);
-      }
-    } catch (err) {
-      setError('Failed to load credentials');
+  useEffect(() => {
+    console.log('startEndDayDetails date', new Date(startEndDayDetails?.checkInOutDateTime).toDateString(), new Date().toDateString());
+    if (
+      startEndDayDetails?.status !== 'in' ||
+      new Date(startEndDayDetails?.checkInOutDateTime).toDateString() !== new Date().toDateString()
+    ) {
+      Alert.alert('Start Your Day', 'Please start your day to proceed.', [
+        { text: 'No', onPress: () => {}, style: 'cancel' },
+        {
+          text: 'Yes',
+          onPress: async () => {
+          console.log('User chose to start the day');
+          try {
+            // await handleStartDay(startDay, trackTimeData, updateForeground, setSnackMessage);
+            navigation.replace(screenNames.myWebView, {nextScreen: 'CheckIn'} );
+            console.log('Day started successfully');
+            //await AsyncStorage.setItem('StartDayPromptShown', 'true');
+          } catch (error) {
+            console.error('Failed to start the day:', error);
+            Alert.alert('Error', 'Failed to start the day. Please try again.');
+          }
+          },
+        },
+      ]);
     }
-  };
+  }, [startEndDayDetails]);
 
-  
-
-  
-
+  console.log('dynamicUrl', dynamicUrl);
   useEffect(() => {
-    loadCredentials(); // Load credentials when the component mounts
-  }, []);
+    const fetchData = async () => {
+      try {
+        const url = await AsyncStorage.getItem('WebUrl');
+        const userId = await AsyncStorage.getItem('userId');
+        const password = await AsyncStorage.getItem('password');
+        if (url) {
+          setDynamicUrl(url);
+        }
+        else if (userId && password) {
+          setDynamicUrl(`https://ekstasis.net/area_officer/Home/AppCall/?UserName=${userId}&Password=${password}`);
+        }
 
-  // Save credentials and employeeId to AsyncStorage whenever they change
-  useEffect(() => {
-    const saveCredentials = async () => {
-      if (loginCredentials) {
-        try {
-          await AsyncStorage.multiSet([
-            ['userID', loginCredentials.userID],
-            ['password', loginCredentials.password],
-          ]);
-        } catch (err) {
-          console.error('Failed to save credentials:', err);
+        if (userId && password) {
+          setInjectedJavaScript(autoLoginUtil(userId, password, { overrideExisting: true }));
         }
-      }
-      if (employeeId) {
-        try {
-          await AsyncStorage.setItem('employeeId', employeeId);
-        } catch (err) {
-          console.error('Failed to save employeeId:', err);
-        }
+      } catch (error) {
+        console.error('Error fetching data from AsyncStorage:', error);
       }
     };
-    saveCredentials();
-  }, [loginCredentials, employeeId]);
 
-  const handleBackPress = useCallback(() => {
-    if (canGoBack) {
-      webViewRef.current.goBack();
-    } else {
-      Alert.alert(
-        'Exit App',
-        'Do you want to exit the app?',
-        [
-          { text: 'Yes', onPress: () => BackHandler.exitApp() },
-          {
-            text: 'No',
-            onPress: () => null,
-            style: 'cancel',
-          },
-         
-        ],
-        { cancelable: false }
-      );
-    }
-    return true;
-  }, [canGoBack]);
-
-  useFocusEffect(
-    useCallback(() => {
-      const onBackPress = () => handleBackPress();
-
-      BackHandler.addEventListener('hardwareBackPress', onBackPress);
-
- 
-    }, [handleBackPress])
-  );
-
-  if (error) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>{error}</Text>
-        <Button mode="contained" onPress={() => setError(null)}>
-          Retry
-        </Button>
-      </View>
-    );
-  }
-
-  if (!loginCredentials ) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" />
-        <Text>Loading...</Text>
-      </View>
-    );
-  }
-
-  const { userID, password } = loginCredentials;
-
-  const injectedJavaScript = autoLoginUtil(userID, password);
-
-  const onMessage = (event) => {
-    console.log('Message from WebView:', event.nativeEvent.data);
-  };
-
-  const onShouldStartLoadWithRequest = (request) => {
-    // Handle any custom URL schemes or conditions here
-    return true;
-  };
-
-  const onReceivedSslError = (event) => {
-    const { url, code, message } = event.nativeEvent;
-    Alert.alert(
-      'SSL Certificate Error',
-      `An SSL error occurred: ${message} (${code}) for URL: ${url}. Do you want to proceed anyway?`,
-      [
-        {
-          text: 'Cancel',
-          onPress: () => event.nativeEvent.preventDefault(),
-          style: 'cancel',
-        },
-        {
-          text: 'Proceed',
-          onPress: () => event.nativeEvent.proceed(),
-        },
-      ],
-      { cancelable: false }
-    );
-  };
-
-  const dynamicUrl = `https://ekstasis.net/area_officer/Home/AppCall/?UserName=${userID}&Password=${password}`; //ops
-
-
-  console.log('fhjdfh',userID, password);
+    fetchData();
+  }, []);
 
   return (
-    <SafeAreaView style={styles.container}>
-       {/* <Header /> */}
-       <WebView
-  ref={webViewRef}
-  source={{ uri: dynamicUrl }}
-  injectedJavaScript={injectedJavaScript}
-  onMessage={onMessage}
-  javaScriptEnabled={true}
-  domStorageEnabled={true}
-  startInLoadingState={true}
-  onReceivedSslError={(event) => {
-    console.log('SSL Error: ', event.nativeEvent);
-    event.nativeEvent.proceed(); // Proceed despite the SSL error (unsafe)
-  }}
-  onError={(syntheticEvent) => {
-    const { nativeEvent } = syntheticEvent;
-    console.error('WebView error: ', nativeEvent);
-  }}
-  onHttpError={(syntheticEvent) => {
-    const { nativeEvent } = syntheticEvent;
-    console.error('HTTP error: ', nativeEvent.statusCode);
-  }}
+    <WebView
+      ref={webViewRef}
+      source={{
+        uri: dynamicUrl,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
+        },
+      }}
+      injectedJavaScript={injectedJavaScript}
+      javaScriptEnabled={true}
+      domStorageEnabled={true}
+      startInLoadingState={true}
+      onReceivedSslError={(event) => {
+        const { url, code, message } = event.nativeEvent;
+        Alert.alert(
+          'SSL Certificate Error',
+          `An SSL error occurred: ${message} (${code}) for URL: ${url}. Do you want to proceed anyway?`,
+          [
+            { text: 'Cancel', onPress: () => event.nativeEvent.preventDefault(), style: 'cancel' },
+            { text: 'Proceed', onPress: () => event.nativeEvent.proceed() },
+          ],
+          { cancelable: false }
+        );
+      }}
+      onError={(syntheticEvent) => {
+        const { nativeEvent } = syntheticEvent;
+        console.log('WebView error: ', JSON.stringify(nativeEvent));
+        if (nativeEvent.description === 'net::ERR_CONNECTION_RESET') {
+          Alert.alert(
+            'Connection Reset',
+            'The connection was reset. please retry or check your internet connection.',
+            [
+              
+              { text: 'Retry', onPress: () => webViewRef.current?.reload() },
+            ],
+            { cancelable: false }
+          );
+        } else {
+          Alert.alert('Error', 'Failed to load page. Please check your internet connection or try again later.');
+        }
+      }}
+      onHttpError={(syntheticEvent) => {
+        const { nativeEvent } = syntheticEvent;
+        console.log('HTTP error: ', JSON.stringify(nativeEvent));
+      }}
 />
 
-    </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  errorText: {
-    color: 'red',
-    textAlign: 'center',
-    margin: 20,
-  },
-});
-
-export default AutoLoginWebView;
-
-
-
-
-
-
+export default WebViewComponent;

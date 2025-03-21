@@ -1,4 +1,4 @@
-import { API_TOKEN, REACT_APP_BASE_URL } from '@env';
+import { API_TOKEN, REACT_APP_BASE_URL, REACT_APP_BASE_TEST_URL } from '@env';
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { baseApiTags } from '../../common/constants/tags';
 

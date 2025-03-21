@@ -13,6 +13,7 @@ import {store} from './src/redux/store/store';
 import {dark, light} from './src/theme/themes';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
+import SnackBar from './src/components/snackbar';
 
 
 
@@ -34,6 +35,7 @@ function App(): React.JSX.Element {
         <SafeAreaView
           style={{flex: 1, backgroundColor: appTheme.colors.surface}}>
           <GestureHandlerRootView style={{flex: 1}}>
+            <SnackBar />
             <RootNavigator />
           </GestureHandlerRootView>
         </SafeAreaView>

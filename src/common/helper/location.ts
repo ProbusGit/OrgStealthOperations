@@ -5,7 +5,7 @@ import {
   promptForEnableLocationIfNeeded,
   isLocationEnabled,
 } from 'react-native-android-location-enabler';
-import {useGetAttendanceLocationsQuery} from '../../../redux/services/attendance/attendanceApiSlice';
+import {useGetAttendanceLocationsQuery} from '../../redux/services/attendance/attendanceApiSlice';
 import {
   check,
   request,
@@ -17,6 +17,7 @@ import {Alert} from 'react-native';
 // import {isAndroid, isIos} from '../../utils/config';
 import { isAndroid, isIos } from '../utils/config';
 import GetLocation from 'react-native-get-location';
+import { GeolibLatitudeInputValue, GeolibLongitudeInputValue } from 'geolib/es/types';
 
 interface Location {
   siteid: number;
@@ -32,6 +33,8 @@ interface LocationResponse {
 }
 
 interface NearestLocation extends LatLng {
+  latitude: GeolibLatitudeInputValue;
+  longitude: GeolibLongitudeInputValue;
   locationName: string;
   siteid: number;
   radius: number;
@@ -133,7 +136,7 @@ const useNearestLocation = () => {
   const fetchCurrentLocation = useCallback(async () => {
     setIsFetchingLocation(true);
     setLocationStatus('fetching');
-
+console.log('fetching location',isFetchingLocation);
     const permissionGranted = await checkAndRequestLocationPermission();
     if (!permissionGranted) {
       setLocationStatus('error');
@@ -171,7 +174,7 @@ const useNearestLocation = () => {
     }
 
     // Convert locations to LatLng format
-    const locations = locationList.locations.map(location => ({
+    const locations = locationList.locations.map((location: { gpsLattitude: string; gpsLongitude: string; radius: any; locationName: any; siteid: any; }) => ({
       latitude: parseFloat(location.gpsLattitude),
       longitude: parseFloat(location.gpsLongitude),
       radius: location.radius,
@@ -181,14 +184,20 @@ const useNearestLocation = () => {
 
     // Find the nearest location
     const nearest = findNearest(
-      {latitude: currentLatitude, longitude: currentLongitude},
-      locations,
-    ) as NearestLocation;
+      { latitude: currentLatitude, longitude: currentLongitude },
+      locations
+    ) as unknown as NearestLocation;
 
     // Calculate the distance from the nearest location
     const distance = getDistance(
       {latitude: currentLatitude, longitude: currentLongitude},
       {latitude: nearest.latitude, longitude: nearest.longitude},
+    );
+
+    useEffect(() => {
+      console.log('lattitude', currentLatitude);
+      console.log('longitude', currentLongitude);
+    }
     );
 
     // Check if within range
@@ -223,7 +232,7 @@ const useNearestLocation = () => {
   const refetch = async () => {
     setIsRecalculating(true);
     await new Promise(resolve => setTimeout(resolve, 100)); // Small delay to ensure state update
-    fetchCurrentLocation(); // Fetch updated location
+    fetchCurrentLocation(); // Fetch updated location                                            
   };
 
   return {

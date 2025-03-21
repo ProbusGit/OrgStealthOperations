@@ -19,7 +19,7 @@ const theme = useAppTheme();
       right={
         <TextInput.Icon
         color={theme.colors.onBackground}
-         style={{opacity:.6}}
+         style={{opacity:6}}
           icon={passwordVisible ? 'eye-off' : 'eye'}
           onPress={togglePassword}
         />

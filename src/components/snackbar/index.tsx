@@ -2,8 +2,6 @@ import React from 'react';
 import useSnackBar from './useSnackBar';
 import {Portal, Snackbar} from 'react-native-paper';
 import useStyles from './useStyles';
-import {View} from 'react-native';
-import Text from '../Text';
 import {SnackBarTypes} from './types';
 
 const SnackBar: React.FC<SnackBarTypes> = () => {

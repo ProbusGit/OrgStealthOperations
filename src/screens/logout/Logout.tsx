@@ -35,7 +35,7 @@ const LogoutScreen: React.FC = () => {
 
       const clearEmployeeId = async () => {
         try {
-          await AsyncStorage.removeItem('employeeId');
+            await AsyncStorage.clear();
           // Navigate to the login screen or another appropriate screen
           navigation.dispatch(
             CommonActions.reset({

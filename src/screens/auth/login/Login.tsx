@@ -22,117 +22,57 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { mmkvKeys } from '../../../common';
 import {useAppDispatch, useAppSelector} from '../../../redux/hooks/hooks';
 
-const Login: React.FC = () => {
-  const theme = useAppTheme();
-  const navigation = useNavigation<RootStackParamList>();
-
+const Login = () => {
   const [userID, setUserID] = useState('');
   const [password, setPassword] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
-
   const [login, { isLoading }] = useLoginMutation();
-
-
-
-    useEffect(() => {
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-      // Exit the app when back button is pressed
-      BackHandler.exitApp();
-      return true;
-    });
-
-    // Clean up the event listener when the component is unmounted
-    return () => backHandler.remove();
-  }, []);
-
-
+  const navigation = useNavigation();
 
   const handleLogin = async () => {
     if (!userID || !password) {
       Alert.alert('Error', 'Please enter both username and password.');
       return;
     }
-  
-    console.log('Attempting login with:', { userName: userID, password });
-  
+
     try {
-      const response = await login({  userID, password }).unwrap();
-      console.log('Login successful', response);
-  
-      // Save employeeId to AsyncStorage
-      await AsyncStorage.setItem('employeeId', response?.data?.employeeId.toString()??'');
+      const response = await login({ userID, password }).unwrap();
+      await AsyncStorage.setItem('employeeId', response?.data?.employeeId.toString() || '');
       await AsyncStorage.setItem('userID', userID);
       await AsyncStorage.setItem('password', password);
-      console.log('Credentials set in AsyncStorage');
-  
-      Alert.alert('Success', 'Login successful!');
-      navigation.navigate(screenNames.myWebView);
+      await AsyncStorage.setItem('WebUrl', `https://ekstasis.net/area_officer/Home/AppCall/?UserName=${userID}&Password=${password}`);
+      await AsyncStorage.setItem('credentials', JSON.stringify({ employeeId: response?.data?.employeeId.toString(), userID, password }));
+      navigation.replace(screenNames.myWebView);
     } catch (error) {
-      console.error('Login error', error);
       Alert.alert('Error', 'Failed to login. Please check your credentials and try again.');
     }
   };
 
-  
-
   return (
-    <KeyboardAvoidingView
-      // behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-       behavior="padding"
-      style={{ flex: 1 }}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ flexGrow: 1 }}
-        keyboardShouldPersistTaps="handled">
+    <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
         <View style={styles.container}>
           <View style={styles.card}>
-            <Text variant="displaySmall" style={styles.title}>
-            Stealth Ops
-            </Text>
-            <Text variant="displaySmall" style={styles.loginText}>
-              Login
-            </Text>
+            <Text variant="displaySmall" style={styles.title}>Stealth Ops</Text>
+            <Text variant="displaySmall" style={styles.loginText}>Login</Text>
             <View style={styles.inputContainer}>
-              <View style={styles.inputFieldsContainer}>
-                <TextInput
-                  mode="flat"
-                  style={styles.inputText}
-                  placeholder="UserName"
-                  value={userID}
-                  onChangeText={setUserID}
-                  outlineColor={theme.colors.outline}
-                />
-              </View>
-              <View style={styles.inputFieldsContainer}>
-                <TextInput
-                  mode="flat"
-                  style={styles.inputText}
-                  placeholder="Password"
-                  secureTextEntry={!passwordVisible}
-                  value={password}
-                  onChangeText={setPassword}
-                  outlineColor={theme.colors.outline}
-                  right={
-                    <TextInput.Icon
-                      icon={() => (
-                        <Ionicons
-                          name={passwordVisible ? 'eye-off' : 'eye'}
-                          size={20}
-                          color={theme.colors.text}
-                        />
-                      )}
-                      onPress={() => setPasswordVisible(!passwordVisible)}
-                    />
-                  }
-                />
-              </View>
-              <Button
-                mode="contained"
-                loading={isLoading}
-                onPress={handleLogin}
-                disabled={isLoading}>
-                Login
-              </Button>
+              <TextInput
+                mode="flat"
+                style={styles.inputText}
+                placeholder="UserName"
+                value={userID}
+                onChangeText={setUserID}
+              />
+              <TextInput
+                mode="flat"
+                style={styles.inputText}
+                placeholder="Password"
+                secureTextEntry={!passwordVisible}
+                value={password}
+                onChangeText={setPassword}
+                right={<TextInput.Icon icon={() => <Ionicons name={passwordVisible ? 'eye-off' : 'eye'} size={20} />} onPress={() => setPasswordVisible(!passwordVisible)} />}
+              />
+              <Button mode="contained" loading={isLoading} onPress={handleLogin} disabled={isLoading}>Login</Button>
               <Divider />
             </View>
           </View>
@@ -141,6 +81,8 @@ const Login: React.FC = () => {
     </KeyboardAvoidingView>
   );
 };
+
+
 
 const styles = StyleSheet.create({
   container: {

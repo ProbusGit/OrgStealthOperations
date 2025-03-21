@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
-import Profile from '../../screens/profile';
+import { StyleSheet } from 'react-native';
 import LogoutScreen from '../../screens/logout';
-import NotificationScreen from '../../screens/notification';
-import HomeScreen from '../../screens/home';
 import AutoLoginWebView from '../../components/webView';
 import { CommonActions, useNavigation, useRoute } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { BottomNavigation } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import CheckInScreen from '../../screens/checkin';
 
 const Tab = createBottomTabNavigator();
 
@@ -21,6 +19,7 @@ export default function MyComponent() {
 
   return (
     <Tab.Navigator
+      initialRouteName={route.params ? route.params?.nextScreen:'Home'} // Default to Home
       screenOptions={{
         headerShown: false,
       }}
@@ -90,8 +89,8 @@ export default function MyComponent() {
       />
 
       <Tab.Screen
-        name="Check In"
-        component={HomeScreen}
+        name="CheckIn"
+        component={CheckInScreen}
         options={{
           tabBarLabel: 'Check In',
           tabBarIcon: ({ color, size }) => (

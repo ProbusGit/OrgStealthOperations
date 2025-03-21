@@ -13,53 +13,37 @@ import Geolocation from 'react-native-geolocation-service';
 import {request, PERMISSIONS, RESULTS} from 'react-native-permissions';
 import NetInfo, {fetch} from '@react-native-community/netinfo';
 import DeviceInfo from 'react-native-device-info';
-// import {
-//   useAddTrackTimeMutation,
-//   useGetTrackTimeQuery,
-// } from '../../../../redux/services/attendance/attendanceApiSlice';
 import { useAddTrackTimeMutation, useGetTrackTimeQuery } from '../../../redux/services/attendance/attendanceApiSlice';
 import { useAppSelector } from '../../../redux/hooks/hooks';
 import {convertToMilliseconds} from './helper';
-// import {
-//   getLocationTracking,
-//   saveLocationTracking,
-//   clearLocationTracking,
-// } from '../../../../components/services/sqlite/locationTracking';
-import {isLocationEnabled} from 'react-native-android-location-enabler';
-
-import { mmkvKeys } from '../..';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
 let ReactNativeForegroundService = Platform.OS === 'android' ? require('@supersami/rn-foreground-service').default : null;
+
 const useTrackUser = () => {
   const [isConnected, setIsConnected] = useState(true);
-
-  // const {employeeDetails} = useAppSelector(state => state.employee);
   const watchIdRef = useRef(null);
   const [addTrack, addTrackResult] = useAddTrackTimeMutation();
   const [batteryStatus, setBatteryStatus] = useState('0');
   const {data: trackTime} = useGetTrackTimeQuery(null);
 
-  const syncOfflineData = async () => {
-    // try {
-    //   const offlineData = await getLocationTracking(); // Retrieve offline data from DB
-    //   console.log('offlineData', offlineData);
-    //   if (offlineData.length > 0) {
-    //     try {
-    //       await addTrack(offlineData); // Replace with your actual API call\
+  // Key for storing offline payloads in AsyncStorage
+  const OFFLINE_PAYLOADS_KEY = 'offline_payloads';
 
-    //       await clearLocationTracking();
-    //     } catch (err) {
-    //       console.error('Error syncing offline data', err);
-    //     }
-
-    //     console.log('Offline data synced successfully', offlineData);
-    //     // Here, you might want to clear the data from the DB after successful sync
-    //   }
-    // } catch (error) {
-    //   console.error('Error syncing offline data:', error);
-    // }
+  // Function to store payloads locally
+  const storePayload = async (payload) => {
+    try {
+      console.log('Payloads: start net', payload);
+      const existingPayloads = await AsyncStorage.getItem(OFFLINE_PAYLOADS_KEY);
+      const payloads = existingPayloads ? JSON.parse(existingPayloads) : [];
+      payloads.push(payload);
+      console.log('Payloads: stop net', payloads);
+      await AsyncStorage.setItem(OFFLINE_PAYLOADS_KEY, JSON.stringify(payloads));
+      console.log('Payload stored offline:', payload);
+    } catch (error) {
+      console.error('Error storing payload:', error);
+    }
   };
-
   useEffect(() => {
     if (Platform.OS === 'android') {
       requestLocationPermission();
@@ -79,6 +63,61 @@ const useTrackUser = () => {
   const stopTrackingUser = () => {
     removeForeground();
   };
+
+  // Function to retrieve stored payloads
+  const getStoredPayloads = async () => {
+    try {
+      console.log('Getting stored payloads');
+      const payloads = await AsyncStorage.getItem(OFFLINE_PAYLOADS_KEY);
+      return payloads ? JSON.parse(payloads) : [];
+    } catch (error) {
+      console.error('Error retrieving stored payloads:', error);
+      return [];
+    }
+  };
+
+  // Function to clear stored payloads
+  const clearStoredPayloads = async () => {
+    try {
+      console.log('Clearing stored payloads');
+      await AsyncStorage.removeItem(OFFLINE_PAYLOADS_KEY);
+      console.log('Stored payloads cleared');
+    } catch (error) {
+      console.error('Error clearing stored payloads:', error);
+    }
+  };
+
+  // Function to sync offline data when network is restored
+  const syncOfflineData = async () => {
+    console.log('Syncing offline data');
+    const storedPayloads = await getStoredPayloads();
+    console.log('Stored payloads:', storedPayloads);
+    if (storedPayloads.length > 0) {
+      try {
+        for (const payload of storedPayloads) {
+          await addTrack(payload).unwrap();
+          console.log('addTrack Resp', payload);
+          console.log('Offline payload synced:', payload);
+        }
+        await clearStoredPayloads(); // Clear stored payloads after successful sync
+      } catch (err) {
+        console.error('Error syncing offline data:', err);
+      }
+    }
+  };
+
+  // Network connectivity listener
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setIsConnected(state.isConnected);
+      if (state.isConnected) {
+        console.log('Network restored');
+        syncOfflineData(); // Sync offline data when network is restored
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const requestLocationPermission = async () => {
     try {
@@ -227,6 +266,7 @@ const useTrackUser = () => {
     });
   };
 
+  // Function to get current payload
   const getCurrentPayload = async (latitude, longitude) => {
     const deviceId = DeviceInfo.getDeviceId();
     const ip = await DeviceInfo.getIpAddress();
@@ -248,52 +288,42 @@ const useTrackUser = () => {
     ];
   };
 
+  // Function to start tracking
   const startTracking = async () => {
     Geolocation.requestAuthorization('always');
-console.log('started tracking')
+    console.log('Started tracking');
+
     Geolocation.getCurrentPosition(
       async position => {
         const {longitude, latitude} = position.coords;
         const payload = await getCurrentPayload(latitude, longitude);
         const netInfo = await fetch();
+
         if (netInfo.isConnected) {
-          await syncOfflineData();
-          console.log('location fetched position',position)
-          addTrack(payload)
-            .unwrap()
-            .then(response => {
-              console.log('addTrack Resp', response);
-              keepNotificationAwake();
-            })
-            .catch(async err => {
-              console.log('Error sending coordinates', err);
-              // Store data offline if network is unavailable
-              console.log('saving offline payload', payload);
-              // await saveLocationTracking(payload); // Save data to DB instead of MMKV
-              keepNotificationAwake();
-            });
+          try {
+            await addTrack(payload).unwrap();
+            console.log('addTrack Resp', payload);
+            keepNotificationAwake();
+          } catch (err) {
+            console.log('Error sending coordinates:', err);
+            await storePayload(payload); // Store payload offline if API call fails
+          }
         } else {
-          // Store data offline if network is unavailable
-          console.log('saving offline payload', payload);
-          // await saveLocationTracking(payload); // Save data to DB instead of MMKV
-          keepNotificationAwake();
+          console.log('Error sending coordinates:',);
+          await storePayload(payload); // Store payload offline if network is unavailable
         }
       },
       async error => {
-        console.log('error', error.code, error.message);
-        // Check if the error is due to GPS being disabled
+        console.log('Error fetching location:', error.code, error.message);
         if (error.code === -1 || error.code === 2 || error.code == 1) {
-          // Error codes for GPS not available
-          console.log('gps off');
           alertNotificationForGPS();
         }
-
-        // Store data offline in case of any other errors
-        // await saveLocationTracking([]); // Save empty payload to DB for debugging purposes
       },
       {enableHighAccuracy: true, timeout: 15000, maximumAge: 0},
     );
   };
+
+  // Other functions (updateForeground, removeForeground, etc.) remain unchanged
 
   return {
     requestLocationPermission,

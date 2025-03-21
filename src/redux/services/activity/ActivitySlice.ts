@@ -36,21 +36,21 @@ export const activityApi = baseApi.injectEndpoints({
       providesTags: ['startEndDay'],
     }),
     // /api/tracktime
-    getTrackTime: builder.query<any, void>({
-      query: () => {
-        return {
-          url: `/api/tracktime`,
-          method: 'GET',
-        };
-      },
-      transformResponse: response => response?.data,
-      providesTags: ['startEndDay'],
-    }),
+    // getTrackTime: builder.query<any, void>({
+    //   query: () => {
+    //     return {
+    //       url: `/api/tracktime`,
+    //       method: 'GET',
+    //     };
+    //   },
+    //   transformResponse: response => response?.data,
+    //   providesTags: ['startEndDay'],
+    // }),
 
   }),
 });
 
 export const {
-  useStartDayMutation,useEndDayMutation,useGetStartEndDayDetailsQuery,useGetTrackTimeQuery
+  useStartDayMutation,useEndDayMutation,useGetStartEndDayDetailsQuery
 
 } = activityApi;

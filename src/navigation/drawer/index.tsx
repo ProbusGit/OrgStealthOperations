@@ -1,7 +1,7 @@
 import * as React from 'react';
 import {Button, View} from 'react-native';
 import {createDrawerNavigator} from '@react-navigation/drawer';
-import Home from '../../screens/home';
+import Home from '../../screens/checkin';
 import Profile from '../../screens/profile';
 import BottomNavigator from '../bottomNavigator';
 import {NavigationContainer} from '@react-navigation/native';
