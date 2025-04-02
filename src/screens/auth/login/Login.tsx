@@ -18,7 +18,7 @@ import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useLoginMutation } from '../../../redux/services/auth/login/LoginApiSlice';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import messaging from '@react-native-firebase/messaging';
 import { mmkvKeys } from '../../../common';
 import {useAppDispatch, useAppSelector} from '../../../redux/hooks/hooks';
 
@@ -29,6 +29,9 @@ const Login = () => {
   const [login, { isLoading }] = useLoginMutation();
   const navigation = useNavigation();
 
+  useEffect(()=>{
+    getFCMToken()
+  },[])
   const handleLogin = async () => {
     if (!userID || !password) {
       Alert.alert('Error', 'Please enter both username and password.');
@@ -47,6 +50,34 @@ const Login = () => {
       Alert.alert('Error', 'Failed to login. Please check your credentials and try again.');
     }
   };
+  async function getFCMToken() {
+    try {
+      let token = null;
+        console.log('authStatus==',)
+      token = await messaging().getToken();
+      console.log('authStatus= token=', token)
+
+      if (messaging().isDeviceRegisteredForRemoteMessages) {
+          await messaging().registerDeviceForRemoteMessages();
+          token = await messaging().getToken();
+      }
+      console.log('token=== abc', token)
+      setFcmToken(token)
+      const authStatus = await messaging().requestPermission();
+      console.log('authStatus===')
+
+      const enabled =
+          authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+          authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+      if (enabled) {
+          console.log('Authorization status:', authStatus);
+          //   getFcmToken();
+      }
+      console.log("FCM Token:", token); // Send to your server
+    } catch (error) {
+      console.error("Error getting token:", error);
+    }
+  }
 
   return (
     <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>

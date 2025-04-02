@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "509487388596",
+    "project_id": "stealthoperation-57af9",
+    "storage_bucket": "stealthoperation-57af9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:509487388596:android:2b8a67f9ef28bb43c9c4e1",
+        "android_client_info": {
+          "package_name": "com.stealthoperation"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB7ogC3MQnQRM-hK57Lhw4tbNGPkurIEvs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
