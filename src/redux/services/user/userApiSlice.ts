@@ -12,10 +12,12 @@ export const userDetailsApi = baseApi.injectEndpoints({
       }),
      
     }),
-    getTrackData: builder.query<any, void>({
-      query: () => {
+    getTrackData: builder.query<any, any>({
+      query: (employeeid: string) => {
+        let url = `/api/tracktime?employeeid=${employeeid}`;
+        console.log('url GetLocationTracking', url);
         return {
-          url: `/api/tracktime`,
+          url: url,
           method: 'GET',
         };
       },
@@ -26,7 +28,7 @@ export const userDetailsApi = baseApi.injectEndpoints({
   }),
 });
 
-export const {useGetUserDetailsQuery, useLazyGetUserDetailsQuery,  useGetTrackDataQuery, } =
+export const {useGetUserDetailsQuery, useLazyGetUserDetailsQuery,  useGetTrackDataQuery, useLazyGetTrackDataQuery } =
   userDetailsApi;
 
 

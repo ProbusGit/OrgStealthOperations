@@ -109,7 +109,9 @@ const useTrackUser = () => {
   // Network connectivity listener
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener(state => {
-      setIsConnected(state.isConnected);
+      console.log("Connection type", state.type);
+      console.log("Is connected?", state.isConnected);
+      //setIsConnected(state.isConnected);
       if (state.isConnected) {
         console.log('Network restored');
         syncOfflineData(); // Sync offline data when network is restored
@@ -239,8 +241,6 @@ const useTrackUser = () => {
       visibility: 'public',
       ServiceType:'location',
       number: '1',
-      button: true,
-      button2: true,
       buttonOnPress: 'cray',
       setOnlyAlertOnce: 'true',
       color: '#000000',
@@ -292,35 +292,114 @@ const useTrackUser = () => {
   const startTracking = async () => {
     Geolocation.requestAuthorization('always');
     console.log('Started tracking');
-
+    console.log('===========');
+    const providers = await DeviceInfo.isLocationEnabled();
+    console.log('providers=========', providers, typeof providers, providers == false, providers == true)
+    if (providers == false) {
+      const netInfo = await NetInfo.fetch();
+      if (netInfo.isConnected === false) {
+        ReactNativeForegroundService.update({
+          id: 1244,
+          title: 'GPS Disabled and No Network!',
+          message: 'Please turn on GPS and check your network connection.',
+          // message: 'Please turn on GPS.',
+          icon: 'ic_launcher',
+          visibility: 'public',
+          ServiceType:'location',
+          number: '1',
+          buttonOnPress: 'cray',
+          setOnlyAlertOnce: 'true',
+          color: 'red',
+          importance: 'high',
+          vibration: true,
+        })
+      }
+    console.log('providers======;')
+      ReactNativeForegroundService.update({
+          id: 1244,
+          title: 'GPS off. Tracking stopped. Check location settings.',
+          message: 'GPS is disabled. Tracking has stopped. Please check if your location is turned on.',
+          icon: 'ic_launcher',
+          visibility: 'public',
+          ServiceType: 'location',
+          number: '1',
+          buttonOnPress: 'cray',
+          setOnlyAlertOnce: 'true',
+          color: '#FF0000',
+          importance: 'high',
+          vibration: true,
+        });
+    }else
     Geolocation.getCurrentPosition(
       async position => {
         const {longitude, latitude} = position.coords;
         const payload = await getCurrentPayload(latitude, longitude);
         const netInfo = await fetch();
-
+        console.log('NetInfo:', netInfo.isConnected);
         if (netInfo.isConnected) {
           try {
             await addTrack(payload).unwrap();
             console.log('addTrack Resp', payload);
             keepNotificationAwake();
           } catch (err) {
+            ReactNativeForegroundService.update({
+          id: 1244,
+          title: err,
+          message: err+'! Please check.',
+          icon: 'ic_launcher',
+          visibility: 'public',
+          number: '1',
+          buttonOnPress: 'cray',
+          setOnlyAlertOnce: 'true',
+          color: '#000000',
+          importance: 'high',
+          vibration: true,
+        });
             console.log('Error sending coordinates:', err);
             await storePayload(payload); // Store payload offline if API call fails
           }
         } else {
+           ReactNativeForegroundService.update({
+          id: 1244,
+          title: 'Check You Network!',
+          message: 'Please check your network connection.',
+          icon: 'ic_launcher',
+          visibility: 'public',
+          number: '1',
+          buttonOnPress: 'cray',
+          setOnlyAlertOnce: 'true',
+          color: '#000000',
+          importance: 'high',
+          vibration: true,
+        });
           console.log('Error sending coordinates:',);
           await storePayload(payload); // Store payload offline if network is unavailable
         }
       },
-      async error => {
-        console.log('Error fetching location:', error.code, error.message);
+      error => {
+        console.log('Failed to fetch location during tracking:', error);
+        ReactNativeForegroundService.update({
+          id: 1244,
+          title: 'GPS Disabled!',
+          message: 'Please turn on GPS to continue tracking.',
+          icon: 'ic_launcher_red', // Use a red icon to indicate importance (ensure the icon exists in your resources)
+          visibility: 'public',
+          ServiceType: 'location',
+          number: '1',
+          buttonOnPress: 'cray',
+          setOnlyAlertOnce: 'true',
+          color: '#FF0000', // Red color to indicate urgency
+          importance: 'high', // High importance for critical notifications
+          vibration: true,
+        });
+        Alert.alert('Location Error', 'Please enable GPS to proceed.');
+        console.log('Error fetching location:', error);
         if (error.code === -1 || error.code === 2 || error.code == 1) {
           alertNotificationForGPS();
         }
       },
-      {enableHighAccuracy: true, timeout: 15000, maximumAge: 0},
     );
+
   };
 
   // Other functions (updateForeground, removeForeground, etc.) remain unchanged

@@ -1,22 +1,84 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import LogoutScreen from '../../screens/logout';
 import AutoLoginWebView from '../../components/webView';
 import { CommonActions, useNavigation, useRoute } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { BottomNavigation } from 'react-native-paper';
+import { createStackNavigator } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import CheckInScreen from '../../screens/checkin';
-
+import NetInfo from '@react-native-community/netinfo';
+import Geolocation from '@react-native-community/geolocation';
+import OfflineScreen from '../Offline';
+import DeviceInfo from 'react-native-device-info';
+import LocationOffScreen from '../LocationOffScreen';
+const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
 export default function MyComponent() {
   const [userId, setUserId] = useState<string | undefined>(undefined);
   const [homeKey, setHomeKey] = useState(0); // Key to force re-render of AutoLoginWebView
-
+  const [isConnected, setIsConnected] = useState(true);
+  const [isLocationEnabled, setIsLocationEnabled]  = useState(true)
   const navigation = useNavigation();
   const route = useRoute();
 
+  useEffect(() => {
+    // Check auth status on mount
+    // Subscribe to network status
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setIsConnected(state.isConnected ?? false);
+    });
+    return () => unsubscribe();
+  }, []);
+  // useEffect(() => {
+  //   // Check auth status on mount
+  //   // Subscribe to network status
+    
+
+  //   // Check location permission and status
+  //   const checkLocationStatus = async () => {
+  //     const hasPermission = await Geolocation.requestAuthorization('whenInUse');
+  //     if (hasPermission !== 'granted') {
+  //       setIsLocationEnabled(false);
+  //       return;
+  //     }
+
+  //     Geolocation.getCurrentPosition(
+  //       position => {
+  //         setIsLocationEnabled(true);
+  //       },
+  //       error => {
+  //         setIsLocationEnabled(false);
+  //       },
+  //       { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+  //     );
+
+  //     const locationServicesEnabled = await DeviceInfo.isLocationEnabled();;
+  //     setIsLocationEnabled(locationServicesEnabled);
+  //   };
+
+  //   checkLocationStatus();
+
+  //   return () => unsubscribeNetInfo();
+  // }, []);
+
+  if (!isConnected) {
+    return (
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="Offline" component={OfflineScreen} />
+      </Stack.Navigator>
+    );
+  }
+
+  if (!isLocationEnabled) {
+    return (
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="LocationOff" component={LocationOffScreen} />
+      </Stack.Navigator>
+    );
+  }
   return (
     <Tab.Navigator
       initialRouteName={route.params ? route.params?.nextScreen:'Home'} // Default to Home
