@@ -17,7 +17,6 @@ import { useLoginMutation } from '../../redux/services/auth/login/LoginApiSlice'
 import ReactNativeForegroundService from '@supersami/rn-foreground-service';
 import NetInfo, { useNetInfo } from '@react-native-community/netinfo';
 import RNLocation from 'react-native-location';
-import RNLocationEnabler from 'react-native-location-enabler'; // For Android
 import { openSettings } from 'react-native-permissions';
 const CheckInScreen = () => {
   const navigation = useNavigation();

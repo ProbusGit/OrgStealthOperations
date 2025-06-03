@@ -39,7 +39,6 @@ const Login = () => {
     }
 
     try {
-      console.log('Login attempt with userID:', userID, 'password:', password)
       const response = await login({ userID, password }).unwrap();
       await AsyncStorage.setItem('employeeId', response?.data?.employeeId.toString() || '');
       await AsyncStorage.setItem('userID', userID);
