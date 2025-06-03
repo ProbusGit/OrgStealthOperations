@@ -42,6 +42,8 @@
     "react-native-gesture-handler": "^2.23.0",
     "react-native-get-location": "^5.0.0",
     "react-native-linear-gradient": "^2.8.3",
+    "react-native-location": "^2.5.0",
+    "react-native-location-enabler": "^4.1.1",
     "react-native-paper": "^5.13.1",
     "react-native-permissions": "^5.2.5",
     "react-native-reanimated": "^3.16.7",
