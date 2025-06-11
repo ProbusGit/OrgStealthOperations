@@ -44,12 +44,13 @@ const CheckInScreen = () => {
   const [location, setLocation] = useState({latitude: '', longitude: ''});
   const [employeeId, setEmployeeId] = useState(null); // State to store employeeId
   const {data: startEndDayDetails} = useGetStartEndDayDetailsQuery();
+  const [isAppLoading, setIsLoading] = useState(true);
   const [getTrackData, {data: effectiveTrackTimeData}] =
     useLazyGetTrackDataQuery();
   // const defaultTrackTime = '00:01:00';
   // const trackTimeData = effectiveTrackTimeData || defaultTrackTime;
   const [trackTimeData, setTrackTimeData] = useState('00:01:00');
-
+  console.log('isAppLoading', isAppLoading)
   console.log('trackTimeData', trackTimeData);
   const [startDay] = useStartDayMutation();
   const [endDay] = useEndDayMutation();
@@ -99,6 +100,7 @@ const CheckInScreen = () => {
           latitude: position.latitude.toString(),
           longitude: position.longitude.toString(),
         });
+        setIsLoading(false);
       }
     } catch (error) {
       console.error('Location error:', error);
@@ -117,11 +119,14 @@ const CheckInScreen = () => {
               latitude: position.coords.latitude.toString(),
               longitude: position.coords.longitude.toString(),
             });
+        setIsLoading(false);
+
           },
           error => {
             console.log('Failed to fetch location:', error);
             setError('Failed to fetch location');
             setSnackMessage('Failed to fetch location');
+            
           },
           {enableHighAccuracy: true, timeout: 20000, maximumAge: 1000},
         );
@@ -166,6 +171,8 @@ const CheckInScreen = () => {
             latitude: position.coords.latitude.toString(),
             longitude: position.coords.longitude.toString(),
           });
+        setIsLoading(false);
+
           console.log('Location updated every 5 minutes:', position.coords);
         },
         error => {
@@ -442,6 +449,7 @@ const CheckInScreen = () => {
         style={styles.button}
         onPress={() => {
           if (netInfo.isConnected) {
+          isAppLoading ?null :
             toggleCheckInOut('change');
           } else {
             Alert.alert(

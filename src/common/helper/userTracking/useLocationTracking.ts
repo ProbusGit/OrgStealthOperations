@@ -287,121 +287,143 @@ const useTrackUser = () => {
       },
     ];
   };
+const getAccurateLocation = async (maxAttempts = 3, timeout = 15000, minAccuracy = 50) => {
+  let attempts = 0;
 
-  // Function to start tracking
-  const startTracking = async () => {
-    Geolocation.requestAuthorization('always');
-    console.log('Started tracking');
-    console.log('===========');
-    const providers = await DeviceInfo.isLocationEnabled();
-    console.log('providers=========', providers, typeof providers, providers == false, providers == true)
-    if (providers == false) {
-      const netInfo = await NetInfo.fetch();
-      if (netInfo.isConnected === false) {
+    
+    try {
+      const location = await new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          reject(new Error('Location request timed out'));
+        }, timeout);
+
+        Geolocation.getCurrentPosition(
+          (position) => {
+            clearTimeout(timeoutId);
+            resolve(position);
+          },
+          (error) => {
+            clearTimeout(timeoutId);
+            reject(error);
+          },
+          {
+            enableHighAccuracy: true,
+            maximumAge: 0,
+            timeout: timeout,
+            distanceFilter: 0,
+            forceRequestLocation: true
+          }
+        );
+      });
+
+      if (location.coords.accuracy <= minAccuracy) {
+        return location;
+      } else {
+        console.warn(`Attempt ${attempts}: Poor accuracy (${location.coords.accuracy}m > ${minAccuracy}m)`);
         ReactNativeForegroundService.update({
           id: 1244,
-          title: 'GPS Disabled and No Network!',
-          message: 'Please turn on GPS and check your network connection.',
-          // message: 'Please turn on GPS.',
+          title: 'Weak GPS Signal',
+          message: `Attempting better location`,
           icon: 'ic_launcher',
+          color: '#FFA500', // Orange for warning
+          importance: 'high',
           visibility: 'public',
           ServiceType:'location',
           number: '1',
           buttonOnPress: 'cray',
           setOnlyAlertOnce: 'true',
+          vibration: true,
+        });
+      }
+    } catch (error) {
+      console.warn(`Attempt ${attempts} failed:`, error.message);
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
+  
+
+  throw new Error(`Failed to get location with required accuracy`);
+};
+  // Function to start tracking
+  const startTracking = async () => {
+    
+    Geolocation.requestAuthorization('always');
+    console.log('Started tracking');
+    
+    const providers = await DeviceInfo.isLocationEnabled();
+    if (!providers) {
+      const netInfo = await NetInfo.fetch();
+      if (!netInfo.isConnected) {
+        ReactNativeForegroundService.update({
+          id: 1244,
+          title: 'GPS Disabled and No Network!',
+          message: 'Please turn on GPS and check network',
+          icon: 'ic_launcher',
           color: 'red',
           importance: 'high',
           vibration: true,
-        })
+        });
       }
-    console.log('providers======;')
+      
       ReactNativeForegroundService.update({
-          id: 1244,
-          title: 'GPS off. Tracking stopped. Check location settings.',
-          message: 'GPS is disabled. Tracking has stopped. Please check if your location is turned on.',
-          icon: 'ic_launcher',
-          visibility: 'public',
-          ServiceType: 'location',
-          number: '1',
-          buttonOnPress: 'cray',
-          setOnlyAlertOnce: 'true',
-          color: '#FF0000',
-          importance: 'high',
-          vibration: true,
-        });
-    }else
-    Geolocation.getCurrentPosition(
-      async position => {
-        const {longitude, latitude} = position.coords;
-        const payload = await getCurrentPayload(latitude, longitude);
-        const netInfo = await fetch();
-        console.log('NetInfo:', netInfo.isConnected);
-        if (netInfo.isConnected) {
-          try {
-            await addTrack(payload).unwrap();
-            console.log('addTrack Resp', payload);
-            keepNotificationAwake();
-          } catch (err) {
-            ReactNativeForegroundService.update({
-          id: 1244,
-          title: err,
-          message: err+'! Please check.',
-          icon: 'ic_launcher',
-          visibility: 'public',
-          number: '1',
-          buttonOnPress: 'cray',
-          setOnlyAlertOnce: 'true',
-          color: '#000000',
-          importance: 'high',
-          vibration: true,
-        });
-            console.log('Error sending coordinates:', err);
-            await storePayload(payload); // Store payload offline if API call fails
-          }
-        } else {
-           ReactNativeForegroundService.update({
-          id: 1244,
-          title: 'Check You Network!',
-          message: 'Please check your network connection.',
-          icon: 'ic_launcher',
-          visibility: 'public',
-          number: '1',
-          buttonOnPress: 'cray',
-          setOnlyAlertOnce: 'true',
-          color: '#000000',
-          importance: 'high',
-          vibration: true,
-        });
-          console.log('Error sending coordinates:',);
-          await storePayload(payload); // Store payload offline if network is unavailable
-        }
-      },
-      error => {
-        console.log('Failed to fetch location during tracking:', error);
+        id: 1244,
+        title: 'GPS Disabled',
+        message: 'Please enable location services',
+        icon: 'ic_launcher',
+        color: '#FF0000',
+        importance: 'high',
+      });
+      return;
+    }
+
+    try {
+      // Use the new accurate location function
+      const position = await getAccurateLocation();
+      const {longitude, latitude} = position.coords;
+
+      const payload = await getCurrentPayload(latitude, longitude);
+      const netInfo = await fetch();
+      
+      if (netInfo.isConnected) {
+        await addTrack(payload).unwrap();
+        keepNotificationAwake();
+      } else {
+        await storePayload(payload);
         ReactNativeForegroundService.update({
           id: 1244,
-          title: 'GPS Disabled!',
-          message: 'Please turn on GPS to continue tracking.',
-          icon: 'ic_launcher_red', // Use a red icon to indicate importance (ensure the icon exists in your resources)
-          visibility: 'public',
-          ServiceType: 'location',
-          number: '1',
-          buttonOnPress: 'cray',
-          setOnlyAlertOnce: 'true',
-          color: '#FF0000', // Red color to indicate urgency
-          importance: 'high', // High importance for critical notifications
-          vibration: true,
+          title: 'Location Saved Offline',
+          message: 'Will sync when network returns',
+          icon: 'ic_launcher',
+          color: '#0000FF', // Blue for info
+          importance: 'high'
         });
-        Alert.alert('Location Error', 'Please enable GPS to proceed.');
-        console.log('Error fetching location:', error);
-        if (error.code === -1 || error.code === 2 || error.code == 1) {
-          alertNotificationForGPS();
-        }
-      },
-    );
-
+      }
+    } catch (error) {
+      console.log('Final location error:', error);
+      
+      if (error.message.includes('Poor accuracy') || error.message.includes('Failed to get location')) {
+        ReactNativeForegroundService.update({
+          id: 1244,
+          title: 'Location Inaccurate',
+          message: 'Move to open area for better GPS',
+          icon: 'ic_launcher',
+          color: '#FFA500',
+          vibration: true,
+          importance: 'high'
+        });
+      } else {
+        ReactNativeForegroundService.update({
+          id: 1244,
+          title: 'Location Error',
+          message: error.message,
+          icon: 'ic_launcher',
+          color: '#FF0000',
+          vibration: true,
+          importance: 'high'
+        });
+      }
+    }
   };
-
   // Other functions (updateForeground, removeForeground, etc.) remain unchanged
 
   return {
